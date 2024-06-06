@@ -1,4 +1,5 @@
 from collections import defaultdict
+import math
 from tkinter import Tk, filedialog
 from django.shortcuts import get_object_or_404, render, redirect
 from django.http import JsonResponse
@@ -2965,7 +2966,8 @@ def uploadcsv(request):
         # Adjust the field names according to your CSV file structure
         field_names = ['PatientId', 'PatientName', 'age', 'gender', 'TestDate', 'ReportDate', 'FarVisionRight',
                        'FarVisionLeft', 'NearVisionRight', 'NearVisionLeft',
-                       'ColorBlindness']
+                       'SphericalRight', 'CylindricalRight', 'AxisRight', 'AddRight', 
+                       'SphericalLeft', 'CylindricalLeft', 'AxisLeft', 'AddLeft', 'ColorBlindness']
 
         try:
             decoded_file = csv_file.read().decode('utf-8').splitlines()
@@ -3028,6 +3030,14 @@ def uploadcsv(request):
                         NearVisionRight=row['NearVisionRight'],
                         NearVisionLeft=row['NearVisionLeft'],
                         ColorBlindness=row['ColorBlindness'],
+                        SphericalRight=row['SphericalRight'],
+                        CylindricalRight=row['CylindricalRight'],
+                        AxisRight=row['AxisRight'],
+                        AddRight=row['AddRight'],
+                        SphericalLeft=row['SphericalLeft'],
+                        CylindricalLeft=row['CylindricalLeft'],
+                        AxisLeft=row['AxisLeft'],
+                        AddLeft=row['AddLeft']
                     )
 
             if missing_data_logs:

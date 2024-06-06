@@ -165,7 +165,7 @@
                     <br>
                     <table>
                         <tr>
-                            <td colspan="3">    
+                            <td colspan="7">    
                                 Visual Acuity
                             </td>
                         </tr>
@@ -174,10 +174,24 @@
                                 -
                             </td>
                             <td>    
-                                Distance(Vision)
+                                Distance<br>
+                                (Vision)
                             </td>
                             <td>    
-                                Reading(Vision)
+                                Reading<br>
+                                (Vision)
+                            </td>
+                            <td>    
+                                Spherical
+                            </td>
+                            <td>    
+                                Cylindrical
+                            </td>
+                            <td>    
+                                Axis
+                            </td>
+                            <td>    
+                                Add
                             </td>
                         </tr>
                         <tr>
@@ -190,6 +204,18 @@
                             <td>    
                               ${row[8].innerText}
                             </td>
+                            <td>    
+                              ${row[11].innerText}
+                            </td>
+                            <td>    
+                              ${row[12].innerText}
+                            </td>
+                            <td>    
+                              ${row[13].innerText}
+                            </td>
+                            <td>    
+                              ${row[14].innerText}
+                            </td>
                         </tr>
                         <tr>
                             <td>    
@@ -200,6 +226,18 @@
                             </td>
                             <td>    
                                 ${row[9].innerText}
+                            </td>
+                            <td>    
+                              ${row[15].innerText}
+                            </td>
+                            <td>    
+                              ${row[16].innerText}
+                            </td>
+                            <td>    
+                              ${row[17].innerText}
+                            </td>
+                            <td>    
+                              ${row[18].innerText}
                             </td>
                         </tr>
                     </table>
@@ -283,9 +321,10 @@
 
   th,
   td {
-    border: 1px solid #ddd;
-    padding: 8px;
+    border: 0.5px solid #ddd;
+    padding: 2px;
     text-align: left;
+    margin: 0;
   }
 
   th {
@@ -485,6 +524,14 @@
         <label class="hidden">{{ patient.NearVisionRight }}</label>
         <label class="hidden">{{ patient.NearVisionLeft }}</label>
         <label class="hidden">{{ patient.ColorBlindness }}</label>
+        <label class="hidden">{{ patient.SphericalRight }}</label>
+        <label class="hidden">{{ patient.CylindricalRight }}</label>
+        <label class="hidden">{{ patient.AxisRight }}</label>
+        <label class="hidden">{{ patient.AddRight }}</label>
+        <label class="hidden">{{ patient.SphericalLeft }}</label>
+        <label class="hidden">{{ patient.CylindricalLeft }}</label>
+        <label class="hidden">{{ patient.AxisLeft }}</label>
+        <label class="hidden">{{ patient.AddLeft }}</label>
       </li>
       {% endfor %}
     </ul>
