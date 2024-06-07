@@ -5,7 +5,8 @@
   border-radius: var(--ck-border-radius);
 
   /* Set vertical boundaries for the document editor. */
-  max-height: 700px;
+  height: 94.15vh;
+
 
   /* This element is a flex container for easier rendering. */
   display: flex;
@@ -29,22 +30,57 @@
   border-radius: 0;
 } */
 
+
+.page-content {
+  display: grid;
+  text-align: center;
+  grid-template-columns: 50% 50%;
+  height: 100%;
+}
+
+.viewport-container {
+  height: 100%;
+  text-align: center;
+}
+
+.viewport {
+  position: relative;
+  width: 90%;
+  height: 600px;
+  margin: 0.5em auto auto;
+}
+
+.button-container{
+  margin-top: 0.5em;
+}
+
+.tool-button{
+  color: black;
+  background-color: white;
+}
+
+.tool-button:hover{
+  color: white;
+  background-color: black;
+}
+
 /* Make the editable container look like the inside of a native word processor application. */
 .document-editor__editable-container {
   padding: calc(2 * var(--ck-spacing-large));
   background: var(--ck-color-base-foreground);
+  padding-top: 15px;
+  height: 100% !important;
+  overflow: auto !important
 
   /* Make it possible to scroll the "page" of the edited content. */
-  overflow-y: scroll;
 }
 
 .document-editor__editable-container > div{
-  padding: 1cm 1.5cm 0.1cm  !important;
+  padding: none 1.5cm 0.1cm  !important;
 }
 
 .document-editor__editable-container .ck-editor__editable {
   /* Set the dimensions of the "page". */
-  width: 20cm;
   min-height: 21cm;
 
   /* Keep the "page" off the boundaries of the container. */
@@ -286,6 +322,20 @@ tbody {
   padding-right: 25px;
 }
 
+.modal {
+  width: 100%;
+  position: static;
+}
+
+.modal-backdrop {
+  width: 100%;
+  position: static;
+}
+
+.modal-dialog {
+  margin-top: none;
+}
+
 .modal-body {
   max-height: calc(100vh - 210px);
   overflow-y: auto;
@@ -299,6 +349,7 @@ table{
   -o-user-select: none;
   user-select: none;
 }
+
 table::before{
   content: element(table);
 }
