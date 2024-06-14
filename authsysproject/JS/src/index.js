@@ -27,6 +27,38 @@ import { Test } from "@jsonforms/core";
 import html2pdf from "html2pdf.js";
 import axios from "axios";
 
+import * as cornerstone from "cornerstone-core";
+import * as cornerstoneMath from "cornerstone-math";
+import * as cornerstoneTools from "cornerstone-tools";
+import * as cornerstoneWADOImageLoader from "cornerstone-wado-image-loader";
+import * as cornerstoneWebImageLoader from "cornerstone-web-image-loader";
+import dicomParser from "dicom-parser";
+import Hammer from "hammerjs";
+
+//cornerstone init
+cornerstoneTools.external.cornerstone = cornerstone;
+cornerstoneTools.external.Hammer = Hammer;
+cornerstoneTools.external.cornerstoneMath = cornerstoneMath;
+cornerstoneTools.init({ showSVGCursors: true });
+
+//web image loader
+cornerstoneWebImageLoader.external.cornerstone = cornerstone;
+
+//dcm viewer
+// cornerstoneWADOImageLoader.external.cornerstone = cornerstone;
+// cornerstoneWADOImageLoader.external.dicomParser = dicomParser;
+// cornerstoneWADOImageLoader.webWorkerManager.initialize({
+//   maxWebWorkers: navigator.hardwareConcurrency || 1,
+//   startWebWorkersOnDemand: true,
+//   taskConfiguration: {
+//     decodeTask: {
+//       initializeCodecsOnStartup: false,
+//       usePDFJS: false,
+//       strict: false,
+//     }
+//   }
+// })
+
 // const options = [{ label: 'X-RAY CHEST', id: 1 }, { label: "X-RAY KNEE", id: 2 }, { label: "X-RAY SPINE(DORSAL)", id: 3 }, { label: "X-RAY SPINE(CERVICAL)", id: 4 }, { label: "X-RAY SPINE(LUMBER)", id: 5 }, { label: "X-RAY RIGHT-SHOULDER", id: 6 }, { label: "X-RAY LEFT-SHOULDER", id: 7 }, { label: "X-RAY TEMPLATE", id: 8 }, { label: 'CT HEAD', id: 9 }, { label: 'CT PNS', id: 10 }, { label: 'CT ABDOMEN', id: 11 }, { label: 'MRI BRAIN', id: 12 }, { label: 'AUDIOMETRY', id: 13 }, { label: 'ECG', id: 14 }, { label: 'CAMP ECG', id: 15 }]
 
 var current_user = JSON.parse(
@@ -61,12 +93,58 @@ class App extends Component {
     this.GetDivContentOnPDF = this.GetDivContentOnPDF.bind(this);
     this.GetDivContentOnPDFWithoutImage =
       this.GetDivContentOnPDFWithoutImage.bind(this);
+    this.GetDivContentAsJSON = this.GetDivContentAsJSON.bind(this);
     this.GetEcgContentOnPDF = this.GetEcgContentOnPDF.bind(this);
     this.uploadEcgPDF = this.uploadEcgPDF.bind(this);
     this.uploadXrayPDF = this.uploadXrayPDF.bind(this);
-    this.UploadDivContentOnPDFVitals = this.UploadDivContentOnPDFVitals.bind(this);
+    this.UploadDivContentOnPDFVitals =
+      this.UploadDivContentOnPDFVitals.bind(this);
     this.GetDivContentOnWord = this.GetDivContentOnWord.bind(this);
     this.onclickDiv = this.onclickDiv.bind(this);
+    this.enableTool = this.enableTool.bind(this);
+  }
+
+  enableTool(tool) {
+    const element = document.getElementById("viewport");
+    const viewport = cornerstone.getViewport(element);
+    switch (tool) {
+      case "Zoom":
+        cornerstoneTools.setToolActive("Zoom", { mouseButtonMask: 1 });
+        break;
+      case "Contrast":
+        cornerstoneTools.setToolActive("Wwwc", { mouseButtonMask: 1 });
+        break;
+      case "Length":
+        cornerstoneTools.setToolActive("Length", { mouseButtonMask: 1 });
+        break;
+      case "Rotate":
+        viewport.rotation -= 90;
+        cornerstone.setViewport(element, viewport);
+        break;
+      case "Markers":
+        cornerstoneTools.setToolActive("TextMarker", { mouseButtonMask: 1 });
+        break;
+      case "Magnify":
+        cornerstoneTools.setToolActive("Magnify", { mouseButtonMask: 1 });
+        break;
+      case "Pan":
+        cornerstoneTools.setToolActive("Pan", { mouseButtonMask: 1 });
+        break;
+      case "Invert":
+        viewport.invert = !viewport.invert;
+        cornerstone.setViewport(element, viewport);
+        break;
+      case "Disable":
+        cornerstoneTools.setToolDisabled("Zoom");
+        cornerstoneTools.setToolDisabled("Wwwc");
+        cornerstoneTools.setToolDisabled("Length");
+        cornerstoneTools.setToolDisabled("TextMarker");
+        cornerstoneTools.setToolDisabled("Magnify");
+        cornerstoneTools.setToolDisabled("Pan");
+        break;
+      default:
+        break;
+    }
   }
 
   onclickDiv(e) {
@@ -98,6 +176,46 @@ class App extends Component {
       const urlSearchParams = new URLSearchParams(window.location.search);
       const imageUrl = urlSearchParams.get("data-reportimage");
       console.log("Image URL:", imageUrl);
+
+      //cornerstone
+      const element = document.getElementById("viewport");
+      //const dcmimageId =
+      const new_imageId = "https:" + imageUrl;
+      cornerstone.enable(element);
+      cornerstone.registerImageLoader(
+        "https",
+        cornerstoneWebImageLoader.loadImage
+      );
+
+      cornerstone.loadImage(new_imageId).then(function (Image) {
+        console.log(Image);
+        cornerstone.displayImage(element, Image);
+      });
+
+      //cornerstoneWADOImageLoader.webWorkerManager.terminate()
+
+      //tools
+      cornerstoneTools.addTool(cornerstoneTools.ZoomTool, {
+        configuration: {
+          invert: false,
+          preventZoomOutsideImage: false,
+          minScale: 0.1,
+          maxScale: 20.0,
+        },
+      });
+      cornerstoneTools.addTool(cornerstoneTools.RotateTool);
+      cornerstoneTools.addTool(cornerstoneTools.LengthTool);
+      cornerstoneTools.addTool(cornerstoneTools.WwwcTool);
+      cornerstoneTools.addTool(cornerstoneTools.MagnifyTool);
+      cornerstoneTools.addTool(cornerstoneTools.PanTool);
+      cornerstoneTools.addTool(cornerstoneTools.TextMarkerTool, {
+        configuration: {
+          markers: ["F5", "F4", "F3", "F2", "F1"],
+          current: "F1",
+          ascending: true,
+          loop: true,
+        },
+      });
 
       if (imageUrl) {
         const imageElement = document.createElement("img");
@@ -199,10 +317,10 @@ class App extends Component {
 
     // Iterate over exportOptions array to create options dynamically
     exportOptions.forEach(({ label, id }) => {
-        var option = document.createElement("option");
-        option.value = id;
-        option.text = label;
-        list.appendChild(option);
+      var option = document.createElement("option");
+      option.value = id;
+      option.text = label;
+      list.appendChild(option);
     });
 
     list.onchange = this.ActionEvents.bind(this); // bind 'this' to ActionEvents
@@ -346,10 +464,10 @@ class App extends Component {
   createFilename() {
     const urlSearchParams = new URLSearchParams(window.location.search);
     const patientNameElement = document.querySelector(
-      "#root > div > div > div.document-editor__editable-container > div > figure.table.ck-widget.ck-widget_with-selection-handle > table > tbody > tr:nth-child(1) > td:nth-child(1) > span > strong"
+      "#root > div > div > div > div.document-editor__editable-container > div > figure.table.ck-widget.ck-widget_with-selection-handle > table > tbody > tr:nth-child(1) > td:nth-child(1) > span > strong"
     );
     const PatientIdElement = document.querySelector(
-      "#root > div > div > div.document-editor__editable-container > div > figure.table.ck-widget.ck-widget_with-selection-handle > table > tbody > tr:nth-child(1) > td:nth-child(2) > span > strong"
+      "#root > div > div > div > div.document-editor__editable-container > div > figure.table.ck-widget.ck-widget_with-selection-handle > table > tbody > tr:nth-child(1) > td:nth-child(2) > span > strong"
     );
     const patientName = patientNameElement?.innerHTML.trim(); // Trim extra spaces
     const PatientId = PatientIdElement?.innerHTML.trim(); // Trim extra spaces
@@ -396,8 +514,94 @@ class App extends Component {
     });
   }
 
+  ///////////////////////////////// PDF GENERATION CODE /////////////////////////////////////////
+  GetDivContentAsJSON() {
+    const showLoader = () => {
+      console.log("Showing loader");
+      const loader = document.querySelector(".loader");
+      if (loader) {
+        loader.style.display = "block";
+      }
+    };
 
-///////////////////////////////// Download PDF without Image /////////////////////////////
+    const hideLoader = () => {
+      console.log("Hiding loader");
+      const loader = document.querySelector(".loader");
+      if (loader) {
+        loader.style.display = "none";
+      }
+    };
+
+    // Show the loader before starting the JSON generation
+    showLoader();
+
+    const data = document.getElementsByClassName("ck-editor__editable")[0];
+    const table = data.querySelector("table");
+    data.classList.add("ck-blurred");
+    data.classList.remove("ck-focused");
+    const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+    // Remove the last image element from the capture
+    const images = data.querySelectorAll("img");
+    if (images.length > 0) {
+      const lastImage = images[images.length - 1];
+      lastImage.style.display = "none"; // Hide the last image
+    }
+
+    if (data != undefined) {
+      // Create an object to hold the JSON report
+      const jsonReport = {
+        content: [],
+        table: "",
+        paragraphs: [],
+      };
+
+      // Extract table text content
+      if (table) {
+        jsonReport.table = table.textContent.trim();
+      }
+
+      // Extract paragraph text content
+      const paragraphs = data.querySelectorAll("p");
+      paragraphs.forEach((paragraph) => {
+        const paragraphText = paragraph.textContent.trim();
+        jsonReport.paragraphs.push(paragraphText);
+      });
+
+      // Collect all text content into the main content array
+      jsonReport.content = data.textContent.trim();
+
+      // Show the last image again
+      if (images.length > 0) {
+        const lastImage = images[images.length - 1];
+        lastImage.style.display = "block";
+      }
+
+      // Hide the loader when the JSON report is ready
+      hideLoader();
+
+      // Save the JSON report as a file
+      const filename = this.createFilename() || "report";
+      const jsonString = JSON.stringify(jsonReport, null, 2);
+      const blob = new Blob([jsonString], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename + ".json";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+
+      // Redirect to the previous page after a short delay
+      delay(200).then(() => {
+        window.location.reload(true);
+      });
+    }
+  }
+
+  ////////////////////////////////////////////////////////////////////////////////////////////////
+
+  ///////////////////////////////// Download PDF without Image /////////////////////////////
   GetDivContentOnPDFWithoutImage() {
     const showLoader = () => {
       console.log("Showing loader");
@@ -735,8 +939,6 @@ class App extends Component {
 
     loadImageAndRenderPDF();
   }
-
-  
 
   ////////////////////////////////////////////////////////////////////////// UPLOAD ECG PDF //////////////////////////////////////////////////////////////////////////
   uploadEcgPDF = async () => {
@@ -1244,7 +1446,7 @@ class App extends Component {
   };
   //***************************************///////////////////// upload split XRAY pdf to database (END) ///////////////**********************************************/
 
-////////////////////////////////// Upload XRAY PDF without IMAGE (START) ////////////////////////
+  ////////////////////////////////// Upload XRAY PDF without IMAGE (START) ////////////////////////
   UploadDivContentOnPDFWithoutImage() {
     const showLoader = () => {
       console.log("Showing loader");
@@ -1440,7 +1642,6 @@ class App extends Component {
   }
   ////////////////////////////////// Upload XRAY PDF without IMAGE (END) ////////////////////////
 
-
   ////////////////////////////////// Upload XRAY PDF with IMAGE (START) ////////////////////////
   UploadDivContentOnPDF() {
     const showLoader = () => {
@@ -1622,7 +1823,6 @@ class App extends Component {
 
   //////////////////// Upload XRAY PDF with IMAGE (END) ////////////////////////////////////
 
-
   ////////////////////////////////// Upload VITALS PDF without IMAGE (START) ////////////////////////
   UploadDivContentOnPDFVitals() {
     const showLoader = () => {
@@ -1796,186 +1996,182 @@ class App extends Component {
   }
   ////////////////////////////////// Upload Vitals PDF without IMAGE (END) ////////////////////////
 
+  ////////////////////////////////// Upload OPtometry PDF without IMAGE (START) ////////////////////////
+  UploadDivContentOnPDFOptometry() {
+    const showLoader = () => {
+      console.log("Showing loader");
+      const loader = document.querySelector(".loader");
+      if (loader) {
+        loader.style.display = "block";
+      }
+    };
 
-    ////////////////////////////////// Upload OPtometry PDF without IMAGE (START) ////////////////////////
-    UploadDivContentOnPDFOptometry() {
-      const showLoader = () => {
-        console.log("Showing loader");
-        const loader = document.querySelector(".loader");
-        if (loader) {
-          loader.style.display = "block";
+    const hideLoader = () => {
+      console.log("Hiding loader");
+      const loader = document.querySelector(".loader");
+      if (loader) {
+        loader.style.display = "none";
+      }
+    };
+
+    const extractDataFromURL = () => {
+      const patientId = document.querySelector(
+        "#root > div > div > div.document-editor__editable-container > div > figure.table.ck-widget.ck-widget_with-selection-handle > table > tbody > tr:nth-child(1) > td:nth-child(2) > span > strong"
+      )?.innerHTML;
+      const patientName = document.querySelector(
+        "#root > div > div > div.document-editor__editable-container > div > figure.table.ck-widget.ck-widget_with-selection-handle > table > tbody > tr:nth-child(1) > td:nth-child(1) > span > strong"
+      )?.innerHTML;
+      const testDate = document.querySelector(
+        "#root > div > div > div.document-editor__editable-container > div > figure.table.ck-widget.ck-widget_with-selection-handle > table > tbody > tr:nth-child(2) > td:nth-child(2) > span > strong"
+      )?.innerHTML;
+      const reportDate = document.querySelector(
+        "#root > div > div > div.document-editor__editable-container > div > figure.table.ck-widget.ck-widget_with-selection-handle > table > tbody > tr:nth-child(2) > td:nth-child(3) > span > strong"
+      )?.innerHTML;
+
+      return { patientId, patientName, testDate, reportDate };
+    };
+
+    const showNotification = (message) => {
+      const notification = document.getElementById("notification");
+      const notificationText = document.getElementById("notification-text");
+
+      if (notification && notificationText) {
+        notificationText.innerText = message;
+        notification.style.display = "block";
+
+        // Hide the notification after 3 seconds (adjust the delay as needed)
+        setTimeout(() => {
+          notification.style.display = "none";
+        }, 1000);
+      }
+    };
+
+    const getCSRFToken = async () => {
+      try {
+        const response = await fetch("/get-csrf-token/");
+        const data = await response.json();
+        return data.csrf_token;
+      } catch (error) {
+        console.error("Error fetching CSRF token:", error);
+        throw error;
+      }
+    };
+    // Show the loader before starting the PDF generation
+    showLoader();
+    var filename = this.createFilename();
+    const data = document.getElementsByClassName("ck-editor__editable")[0];
+    const table = data.querySelector("table");
+    data.classList.add("ck-blurred");
+    data.classList.remove("ck-focused");
+    const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+    if (data != undefined) {
+      var a4Width = 595.28; // A4 width in points (1 point = 1/72 inch)
+      var a4Height = 841.89; // A4 height in points
+
+      var canvasWidth = a4Width - 40; // Adjusted width to leave some margin
+
+      html2canvas(data, {
+        scale: 4, // Adjust the scale if needed for better quality
+        windowWidth: document.body.scrollWidth,
+        windowHeight: document.body.scrollHeight,
+      }).then(async (canvas) => {
+        const imgData = canvas.toDataURL("image/png", 1.0);
+
+        // Calculate the height based on the aspect ratio of the captured image
+        const canvasHeight = (canvasWidth / canvas.width) * canvas.height;
+
+        // Hide the loader when the PDF is ready
+        hideLoader();
+
+        // Create PDF with only the captured content
+        const pdf = new jsPDF("p", "pt", [a4Width, a4Height], true);
+        pdf.addImage(imgData, "PNG", 20, 20, canvasWidth, canvasHeight);
+
+        pdf.setTextColor(255, 255, 255);
+
+        // Calculate the position to place the text at the bottom
+        const textX = 40;
+        const textY = 841.89 - 2; // 20 points from the bottom
+
+        // If a table exists within the ck-editor__editable div, capture its text content
+        if (table) {
+          const tableText = table.textContent || "";
+
+          // Add the table text as text (preserve original formatting)
+          pdf.setFontSize(2); // Adjust the font size as needed
+          pdf.text(textX, textY, tableText);
         }
-      };
-  
-      const hideLoader = () => {
-        console.log("Hiding loader");
-        const loader = document.querySelector(".loader");
-        if (loader) {
-          loader.style.display = "none";
-        }
-      };
-  
-      const extractDataFromURL = () => {
-        const patientId = document.querySelector(
-          "#root > div > div > div.document-editor__editable-container > div > figure.table.ck-widget.ck-widget_with-selection-handle > table > tbody > tr:nth-child(1) > td:nth-child(2) > span > strong"
-        )?.innerHTML;
-        const patientName = document.querySelector(
-          "#root > div > div > div.document-editor__editable-container > div > figure.table.ck-widget.ck-widget_with-selection-handle > table > tbody > tr:nth-child(1) > td:nth-child(1) > span > strong"
-        )?.innerHTML;
-        const testDate = document.querySelector(
-          "#root > div > div > div.document-editor__editable-container > div > figure.table.ck-widget.ck-widget_with-selection-handle > table > tbody > tr:nth-child(2) > td:nth-child(2) > span > strong"
-        )?.innerHTML;
-        const reportDate = document.querySelector(
-          "#root > div > div > div.document-editor__editable-container > div > figure.table.ck-widget.ck-widget_with-selection-handle > table > tbody > tr:nth-child(2) > td:nth-child(3) > span > strong"
-        )?.innerHTML;
-  
-        return { patientId, patientName, testDate, reportDate };
-      };
-  
-      const showNotification = (message) => {
-        const notification = document.getElementById("notification");
-        const notificationText = document.getElementById("notification-text");
-  
-        if (notification && notificationText) {
-          notificationText.innerText = message;
-          notification.style.display = "block";
-  
-          // Hide the notification after 3 seconds (adjust the delay as needed)
-          setTimeout(() => {
-            notification.style.display = "none";
-          }, 1000);
-        }
-      };
-  
-      const getCSRFToken = async () => {
+
+        // Iterate through all paragraphs in the ck-editor__editable div
+        const paragraphs = data.querySelectorAll("p");
+        paragraphs.forEach((paragraph) => {
+          const paragraphText = paragraph.textContent || "";
+
+          // Add each paragraph text as text (preserve original formatting)
+          pdf.setFontSize(2); // Adjust the font size as needed
+          pdf.text(textX, textY - 2, paragraphText); // Place it above the table text
+        });
+
+        // Convert the PDF to a Blob
+        const pdfBlob = pdf.output("blob");
+
+        // Extract data from URL
+        const { patientId, patientName, testDate, reportDate } =
+          extractDataFromURL();
+
+        // Send the FormData to Django backend using fetch
+        const csrfToken = await getCSRFToken();
+        console.log("CSRF Token:", csrfToken);
+
+        // Create FormData and append the PDF Blob
+        const formData = new FormData();
+        formData.append(
+          "pdf",
+          pdfBlob,
+          filename ? filename + ".pdf" : "download.pdf"
+        );
+        formData.append("patientId", patientId);
+        formData.append("patientName", patientName);
+        formData.append("testDate", testDate);
+        formData.append("reportDate", reportDate);
+
+        console.log("FormData:", formData);
+
         try {
-          const response = await fetch("/get-csrf-token/");
-          const data = await response.json();
-          return data.csrf_token;
-        } catch (error) {
-          console.error("Error fetching CSRF token:", error);
-          throw error;
-        }
-      };
-      // Show the loader before starting the PDF generation
-      showLoader();
-      var filename = this.createFilename();
-      const data = document.getElementsByClassName("ck-editor__editable")[0];
-      const table = data.querySelector("table");
-      data.classList.add("ck-blurred");
-      data.classList.remove("ck-focused");
-      const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-  
-      if (data != undefined) {
-        var a4Width = 595.28; // A4 width in points (1 point = 1/72 inch)
-        var a4Height = 841.89; // A4 height in points
-  
-        var canvasWidth = a4Width - 40; // Adjusted width to leave some margin
-  
-        html2canvas(data, {
-          scale: 4, // Adjust the scale if needed for better quality
-          windowWidth: document.body.scrollWidth,
-          windowHeight: document.body.scrollHeight,
-        }).then(async (canvas) => {
-          const imgData = canvas.toDataURL("image/png", 1.0);
-  
-          // Calculate the height based on the aspect ratio of the captured image
-          const canvasHeight = (canvasWidth / canvas.width) * canvas.height;
-  
-          // Hide the loader when the PDF is ready
-          hideLoader();
-  
-          // Create PDF with only the captured content
-          const pdf = new jsPDF("p", "pt", [a4Width, a4Height], true);
-          pdf.addImage(imgData, "PNG", 20, 20, canvasWidth, canvasHeight);
-  
-          pdf.setTextColor(255, 255, 255);
-  
-          // Calculate the position to place the text at the bottom
-          const textX = 40;
-          const textY = 841.89 - 2; // 20 points from the bottom
-  
-          // If a table exists within the ck-editor__editable div, capture its text content
-          if (table) {
-            const tableText = table.textContent || "";
-  
-            // Add the table text as text (preserve original formatting)
-            pdf.setFontSize(2); // Adjust the font size as needed
-            pdf.text(textX, textY, tableText);
-          }
-  
-          // Iterate through all paragraphs in the ck-editor__editable div
-          const paragraphs = data.querySelectorAll("p");
-          paragraphs.forEach((paragraph) => {
-            const paragraphText = paragraph.textContent || "";
-  
-            // Add each paragraph text as text (preserve original formatting)
-            pdf.setFontSize(2); // Adjust the font size as needed
-            pdf.text(textX, textY - 2, paragraphText); // Place it above the table text
-          });
-  
-          // Convert the PDF to a Blob
-          const pdfBlob = pdf.output("blob");
-  
-          // Extract data from URL
-          const { patientId, patientName, testDate, reportDate } =
-            extractDataFromURL();
-  
-          // Send the FormData to Django backend using fetch
-          const csrfToken = await getCSRFToken();
-          console.log("CSRF Token:", csrfToken);
-  
-          // Create FormData and append the PDF Blob
-          const formData = new FormData();
-          formData.append(
-            "pdf",
-            pdfBlob,
-            filename ? filename + ".pdf" : "download.pdf"
-          );
-          formData.append("patientId", patientId);
-          formData.append("patientName", patientName);
-          formData.append("testDate", testDate);
-          formData.append("reportDate", reportDate);
-  
-          console.log("FormData:", formData);
-  
-          try {
-            const response = await axios.post("/upload_optometry_pdf/", formData, {
+          const response = await axios.post(
+            "/upload_optometry_pdf/",
+            formData,
+            {
               headers: {
                 "Content-Type": "multipart/form-data",
                 "X-CSRFToken": csrfToken,
               },
-            });
-  
-            console.log(
-              "PDF successfully sent to Django backend.",
-              response.data
-            );
-            // Hide the loader when the PDF is ready
-            hideLoader();
-            // Show the success notification
-            showNotification("PDF successfully uploaded!");
-          } catch (error) {
-            console.error("Error sending PDF to Django backend.", error);
-            // Show the error notification
-            showNotification("Error uploading PDF. Please try again.");
-          }
-  
-          // Reload the current page after a short delay
-          setTimeout(() => {
-            window.location.reload(true);
-          }, 200);
-        });
-      }
+            }
+          );
+
+          console.log(
+            "PDF successfully sent to Django backend.",
+            response.data
+          );
+          // Hide the loader when the PDF is ready
+          hideLoader();
+          // Show the success notification
+          showNotification("PDF successfully uploaded!");
+        } catch (error) {
+          console.error("Error sending PDF to Django backend.", error);
+          // Show the error notification
+          showNotification("Error uploading PDF. Please try again.");
+        }
+
+        // Reload the current page after a short delay
+        setTimeout(() => {
+          window.location.reload(true);
+        }, 200);
+      });
     }
-    ////////////////////////////////// Upload Optometry PDF without IMAGE (END) ////////////////////////
-
-
-
-
-
-
-
+  }
+  ////////////////////////////////// Upload Optometry PDF without IMAGE (END) ////////////////////////
 
   //////////////////////////////////////////////////////////////
   toDataURL(url, index, callback) {
@@ -2194,6 +2390,10 @@ class App extends Component {
         console.log("Optometry Report pdf");
         this.UploadDivContentOnPDFOptometry();
         break;
+      case "12":
+        console.log("JSON Report");
+        this.GetDivContentAsJSON();
+        break;
       default:
         console.log("---");
         break;
@@ -2221,162 +2421,230 @@ class App extends Component {
     const { options_label, reportFrmData } = this.state;
     return (
       <div>
-        {this.state.modal && options_label === "X-RAY CHEST" ? (
-          <XrayChest
-            handleClick={this.handleClick}
-            reportFrmData={reportFrmData}
-            generateReport={this.generateReport}
-            generatePatientTable={this.generatePatientTable()}
-          />
-        ) : this.state.modal && options_label === "CT PNS" ? (
-          <PnsAbnormal
-            handleClick={this.handleClick}
-            reportFrmData={reportFrmData}
-            generateReport={this.generateReport}
-            generatePatientTable={this.generatePatientTable()}
-          />
-        ) : this.state.modal && options_label === "CAMP ECG" ? (
-          <CampECG2
-            handleClick={this.handleClick}
-            reportFrmData={reportFrmData}
-            generateReport={this.generateReport}
-            generatePatientTable={this.generatePatientTable()}
-          />
-        ) : this.state.modal && options_label === "X-RAY LEFT-SHOULDER" ? (
-          <XrayLeftShoulder
-            handleClick={this.handleClick}
-            reportFrmData={reportFrmData}
-            generateReport={this.generateReport}
-            generatePatientTable={this.generatePatientTable()}
-          />
-        ) : this.state.modal && options_label === "X-RAY RIGHT-SHOULDER" ? (
-          <XrayRightShoulder
-            handleClick={this.handleClick}
-            reportFrmData={reportFrmData}
-            generateReport={this.generateReport}
-            generatePatientTable={this.generatePatientTable()}
-          />
-        ) : this.state.modal && options_label === "X-RAY KNEE" ? (
-          <XrayKnee
-            handleClick={this.handleClick}
-            reportFrmData={reportFrmData}
-            generateReport={this.generateReport}
-            generatePatientTable={this.generatePatientTable()}
-          />
-        ) : this.state.modal && options_label === "X-RAY SPINE(CERVICAL)" ? (
-          <XraySpineCervical
-            handleClick={this.handleClick}
-            reportFrmData={reportFrmData}
-            generateReport={this.generateReport}
-            generatePatientTable={this.generatePatientTable()}
-          />
-        ) : this.state.modal && options_label === "X-RAY SPINE(LUMBER)" ? (
-          <XraySpineLumber
-            handleClick={this.handleClick}
-            reportFrmData={reportFrmData}
-            generateReport={this.generateReport}
-            generatePatientTable={this.generatePatientTable()}
-          />
-        ) : this.state.modal && options_label === "X-RAY SPINE(DORSAL)" ? (
-          <XraySpineDorsal
-            handleClick={this.handleClick}
-            reportFrmData={reportFrmData}
-            generateReport={this.generateReport}
-            generatePatientTable={this.generatePatientTable()}
-          /> // this.state.modal && (options_label === "ECG") ?
-        ) : //   <ECG handleClick={this.handleClick} reportFrmData={reportFrmData} generateReport={this.generateReport} generatePatientTable={this.generatePatientTable()} /> :
-        this.state.modal && options_label === "VITALS" ? (
-          <Vitals
-            handleClick={this.handleClick}
-            reportFrmData={reportFrmData}
-            generateReport={this.generateReport}
-            generatePatientTable={this.generatePatientTable()}
-          />
-        ) : this.state.modal && options_label === "OPTOMETRY" ? (
-          <Optometry
-            handleClick={this.handleClick}
-            reportFrmData={reportFrmData}
-            generateReport={this.generateReport}
-            generatePatientTable={this.generatePatientTable()}
-          />
-        ) : this.state.modal && options_label === "OPTOMETRY NO-INPUT" ? (
-          <Optometry2
-            handleClick={this.handleClick}
-            reportFrmData={reportFrmData}
-            generateReport={this.generateReport}
-            generatePatientTable={this.generatePatientTable()}
-          />
-        ) : this.state.modal && options_label === "OPTOMETRY (CAMP)" ? (
-          <Optometry3
-            handleClick={this.handleClick}
-            reportFrmData={reportFrmData}
-            generateReport={this.generateReport}
-            generatePatientTable={this.generatePatientTable()}
-          />
-        ) : this.state.modal && options_label === "AUDIOMETRY" ? (
-          <Audiometry
-            handleClick={this.handleClick}
-            reportFrmData={reportFrmData}
-            generateReport={this.generateReport}
-            generatePatientTable={this.generatePatientTable()}
-          />
-        ) : this.state.modal &&
-          options_label === "OPTOMETRY (CAMP) NO-INPUT" ? (
-          <Optometry4
-            handleClick={this.handleClick}
-            reportFrmData={reportFrmData}
-            generateReport={this.generateReport}
-            generatePatientTable={this.generatePatientTable()}
-          />
-        ) : this.state.modal && options_label === "CT ABDOMEN" ? (
-          <CtAbdomen
-            handleClick={this.handleClick}
-            reportFrmData={reportFrmData}
-            generateReport={this.generateReport}
-            generatePatientTable={this.generatePatientTable()}
-          />
-        ) : this.state.modal && options_label === "CT HEAD" ? (
-          <CtHead
-            handleClick={this.handleClick}
-            reportFrmData={reportFrmData}
-            generateReport={this.generateReport}
-            generatePatientTable={this.generatePatientTable()}
-          />
-        ) : (
-          ""
-        )}
         <div className="document-editor">
           <div className="document-editor__toolbar" />
-          <div className="document-editor__editable-container">
-            <CKEditor
-              editor={DecoupledEditor}
-              data={reportFrmData}
-              onInit={(editor) => {
-                editor.onclick = this.onclickDiv;
-                window.editor = editor;
-                editor.allowedContent = true;
-                const toolbarContainer = document.querySelector(
-                  ".document-editor__toolbar"
-                );
+          <div className="page-content">
+            <div className="document-editor__editable-container">
+              {this.state.modal && options_label === "X-RAY CHEST" ? (
+                <XrayChest
+                  handleClick={this.handleClick}
+                  reportFrmData={reportFrmData}
+                  generateReport={this.generateReport}
+                  generatePatientTable={this.generatePatientTable()}
+                />
+              ) : this.state.modal && options_label === "CT PNS" ? (
+                <PnsAbnormal
+                  handleClick={this.handleClick}
+                  reportFrmData={reportFrmData}
+                  generateReport={this.generateReport}
+                  generatePatientTable={this.generatePatientTable()}
+                />
+              ) : this.state.modal && options_label === "CAMP ECG" ? (
+                <CampECG2
+                  handleClick={this.handleClick}
+                  reportFrmData={reportFrmData}
+                  generateReport={this.generateReport}
+                  generatePatientTable={this.generatePatientTable()}
+                />
+              ) : this.state.modal &&
+                options_label === "X-RAY LEFT-SHOULDER" ? (
+                <XrayLeftShoulder
+                  handleClick={this.handleClick}
+                  reportFrmData={reportFrmData}
+                  generateReport={this.generateReport}
+                  generatePatientTable={this.generatePatientTable()}
+                />
+              ) : this.state.modal &&
+                options_label === "X-RAY RIGHT-SHOULDER" ? (
+                <XrayRightShoulder
+                  handleClick={this.handleClick}
+                  reportFrmData={reportFrmData}
+                  generateReport={this.generateReport}
+                  generatePatientTable={this.generatePatientTable()}
+                />
+              ) : this.state.modal && options_label === "X-RAY KNEE" ? (
+                <XrayKnee
+                  handleClick={this.handleClick}
+                  reportFrmData={reportFrmData}
+                  generateReport={this.generateReport}
+                  generatePatientTable={this.generatePatientTable()}
+                />
+              ) : this.state.modal &&
+                options_label === "X-RAY SPINE(CERVICAL)" ? (
+                <XraySpineCervical
+                  handleClick={this.handleClick}
+                  reportFrmData={reportFrmData}
+                  generateReport={this.generateReport}
+                  generatePatientTable={this.generatePatientTable()}
+                />
+              ) : this.state.modal &&
+                options_label === "X-RAY SPINE(LUMBER)" ? (
+                <XraySpineLumber
+                  handleClick={this.handleClick}
+                  reportFrmData={reportFrmData}
+                  generateReport={this.generateReport}
+                  generatePatientTable={this.generatePatientTable()}
+                />
+              ) : this.state.modal &&
+                options_label === "X-RAY SPINE(DORSAL)" ? (
+                <XraySpineDorsal
+                  handleClick={this.handleClick}
+                  reportFrmData={reportFrmData}
+                  generateReport={this.generateReport}
+                  generatePatientTable={this.generatePatientTable()}
+                /> // this.state.modal && (options_label === "ECG") ?
+              ) : //   <ECG handleClick={this.handleClick} reportFrmData={reportFrmData} generateReport={this.generateReport} generatePatientTable={this.generatePatientTable()} /> :
+              this.state.modal && options_label === "VITALS" ? (
+                <Vitals
+                  handleClick={this.handleClick}
+                  reportFrmData={reportFrmData}
+                  generateReport={this.generateReport}
+                  generatePatientTable={this.generatePatientTable()}
+                />
+              ) : this.state.modal && options_label === "OPTOMETRY" ? (
+                <Optometry
+                  handleClick={this.handleClick}
+                  reportFrmData={reportFrmData}
+                  generateReport={this.generateReport}
+                  generatePatientTable={this.generatePatientTable()}
+                />
+              ) : this.state.modal && options_label === "OPTOMETRY NO-INPUT" ? (
+                <Optometry2
+                  handleClick={this.handleClick}
+                  reportFrmData={reportFrmData}
+                  generateReport={this.generateReport}
+                  generatePatientTable={this.generatePatientTable()}
+                />
+              ) : this.state.modal && options_label === "OPTOMETRY (CAMP)" ? (
+                <Optometry3
+                  handleClick={this.handleClick}
+                  reportFrmData={reportFrmData}
+                  generateReport={this.generateReport}
+                  generatePatientTable={this.generatePatientTable()}
+                />
+              ) : this.state.modal && options_label === "AUDIOMETRY" ? (
+                <Audiometry
+                  handleClick={this.handleClick}
+                  reportFrmData={reportFrmData}
+                  generateReport={this.generateReport}
+                  generatePatientTable={this.generatePatientTable()}
+                />
+              ) : this.state.modal &&
+                options_label === "OPTOMETRY (CAMP) NO-INPUT" ? (
+                <Optometry4
+                  handleClick={this.handleClick}
+                  reportFrmData={reportFrmData}
+                  generateReport={this.generateReport}
+                  generatePatientTable={this.generatePatientTable()}
+                />
+              ) : this.state.modal && options_label === "CT ABDOMEN" ? (
+                <CtAbdomen
+                  handleClick={this.handleClick}
+                  reportFrmData={reportFrmData}
+                  generateReport={this.generateReport}
+                  generatePatientTable={this.generatePatientTable()}
+                />
+              ) : this.state.modal && options_label === "CT HEAD" ? (
+                <CtHead
+                  handleClick={this.handleClick}
+                  reportFrmData={reportFrmData}
+                  generateReport={this.generateReport}
+                  generatePatientTable={this.generatePatientTable()}
+                />
+              ) : (
+                ""
+              )}
+              <CKEditor
+                editor={DecoupledEditor}
+                data={reportFrmData}
+                onInit={(editor) => {
+                  editor.onclick = this.onclickDiv;
+                  window.editor = editor;
+                  editor.allowedContent = true;
+                  const toolbarContainer = document.querySelector(
+                    ".document-editor__toolbar"
+                  );
 
-                toolbarContainer.appendChild(editor.ui.view.toolbar.element);
+                  toolbarContainer.appendChild(editor.ui.view.toolbar.element);
 
-                window.editor.ui.view.toolbar.element.children[0].appendChild(
-                  this.copyAction()
-                );
-                window.editor.ui.view.toolbar.element.children[0].appendChild(
-                  this.choose()
-                );
-                // window.editor.ui.view.toolbar.element.children[0].appendChild(this.getPDFButton());
-                window.editor.ui.view.toolbar.element.children[0].appendChild(
-                  this.actionDropDown()
-                );
+                  window.editor.ui.view.toolbar.element.children[0].appendChild(
+                    this.copyAction()
+                  );
+                  window.editor.ui.view.toolbar.element.children[0].appendChild(
+                    this.choose()
+                  );
+                  // window.editor.ui.view.toolbar.element.children[0].appendChild(this.getPDFButton());
+                  window.editor.ui.view.toolbar.element.children[0].appendChild(
+                    this.actionDropDown()
+                  );
 
-                window.editor.ui.view.toolbar.element.children[0].appendChild(
-                  this.userDropdown()
-                );
-              }}
-            />
+                  window.editor.ui.view.toolbar.element.children[0].appendChild(
+                    this.userDropdown()
+                  );
+                }}
+              />
+            </div>
+            <div className="viewport-container">
+              <div className="viewport" id="viewport"></div>
+              <div className="button-container">
+                <button
+                  className="tool-button"
+                  value="Zoom"
+                  onClick={(e) => this.enableTool(e.target.value)}
+                >
+                  Zoom
+                </button>
+                <button
+                  className="tool-button"
+                  value="Contrast"
+                  onClick={(e) => this.enableTool(e.target.value)}
+                >
+                  Contrast
+                </button>
+                <button
+                  className="tool-button"
+                  value="Rotate"
+                  onClick={(e) => this.enableTool(e.target.value)}
+                >
+                  Rotate
+                </button>
+                <button
+                  className="tool-button"
+                  value="Invert"
+                  onClick={(e) => this.enableTool(e.target.value)}
+                >
+                  Invert
+                </button>
+                <button
+                  className="tool-button"
+                  value="Pan"
+                  onClick={(e) => this.enableTool(e.target.value)}
+                >
+                  Pan
+                </button>
+                <button
+                  className="tool-button"
+                  value="Length"
+                  onClick={(e) => this.enableTool(e.target.value)}
+                >
+                  Length
+                </button>
+                <button
+                  className="tool-button"
+                  value="Markers"
+                  onClick={(e) => this.enableTool(e.target.value)}
+                >
+                  Markers
+                </button>
+                <button
+                  className="tool-button"
+                  value="Disable"
+                  onClick={(e) => this.enableTool(e.target.value)}
+                >
+                  Disable Tools
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
