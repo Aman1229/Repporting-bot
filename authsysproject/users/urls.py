@@ -75,6 +75,11 @@ urlpatterns = [
     path('set_target', views.SetTarget, name='set_target'),
     path('ecg_reporting_status', views.ECGReportingStatus, name='ecg_reporting_status'),
     path('ecg_set_target', views.ECGSetTarget, name='ecg_set_target'),
+    path('vaccinationlist', views.vaccinationlist, name='vaccinationlist'),
+    path('delete_all_patients_for_vaccination', views.delete_all_patients_for_vaccination, name='delete_all_patients_for_vaccination'),
+    path('add_patient_for_vaccination', views.add_patient_for_vaccination, name='add_patient_for_vaccination'),
+    path('uploadcsvforvaccination', views.uploadcsvforvaccination, name='uploadcsvforvaccination'),
+    path('VaccinationPatientData', views.vaccinationpatientDetails, name='VaccinationPatientData'),
 
     # path('auto_sync/', views.Auto_Sync, name='get_dcm_files'),
 

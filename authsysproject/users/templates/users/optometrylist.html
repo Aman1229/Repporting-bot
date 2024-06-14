@@ -361,6 +361,15 @@
     /* Adjust the right position as needed */
   }
 
+  /* css for the vaccination list button :*/
+  #route2Container {
+    position: absolute;
+    top: 20px;
+    /* Adjust the top position as needed */
+    right: 180px;
+    /*  Adjust the right position as needed */
+  }
+
   .hidden {
     color: white;
   }
@@ -542,6 +551,9 @@
 </div>
 <div id="routeContainer">
   <a href="{% url 'vitalslist' %}" class="btn btn-warning">vitals</a>
+</div>
+<div id="route2Container">
+  <a href="{% url 'vaccinationlist' %}" class="btn btn-warning">vaccination</a>
 </div>
 
 {% if messages %}

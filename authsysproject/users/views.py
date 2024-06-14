@@ -27,6 +27,7 @@ from users.models.patientdetails import PatientDetails as PatientDetails
 from users.models.audiopatientdata import audioPatientDetails
 from users.models.optometrydata import optopatientDetails
 from users.models.vitalpatientdata import vitalPatientDetails
+from users.models.VaccinationPatientData import vaccinationPatientDetails
 from users.models.DICOMData import DICOMData, DICOMFile, JPEGFile
 from users.models.EcgPdfReport import EcgReport
 from users.models.XrayPdfReport import XrayReport
@@ -2868,6 +2869,180 @@ def optometrylist(request):
     patients = PatientInfo.objects.all()
     return render(request, 'users/optometrylist.html', {'patients': patients})
 
+# Everything related for the vaccination list: 
+
+@user_type_required('campautomation')
+def vaccinationlist(request):
+    patients = vaccinationPatientDetails.objects.all()
+    return render(request, 'users/vaccinationlist.html', {'patients': patients})
+
+def delete_all_patients_for_vaccination(request):
+    if request.method == 'POST':
+        vaccinationPatientDetails.objects.all().delete()
+        return redirect('vaccinationlist')
+    return render(request, 'users/vaccinationlist.html')
+
+def vaccinationpatientDetails(request):
+    if request.method == 'GET':
+        query = request.GET.get('query', None)
+        patients = vaccinationPatientDetails.objects.all()
+        if query is not None:
+            patients = patients.filter(Q(PatientId_icontains=query) | Q(PatientName_icontains=query))
+        # response = {"patients": patients}
+        response = serialize("json", patients)
+        response = json.loads(response)
+        return JsonResponse(status=200, data=response, safe=False)
+
+
+def add_patient_for_vaccination(request):
+    if request.method == 'POST':
+        try:
+            # Retrieve patient details from the POST request
+            patient_id = request.POST.get('PatientId')
+            patient_name = request.POST.get('PatientName')
+            age = request.POST.get('age')
+            gender = request.POST.get('gender')
+            hepatitis_e_batch_no = request.POST.get('Hepatitis_E_Batch_No')
+            hepatitis_e_manufacturing_date = request.POST.get('Hepatitis_E_Manufacturing_Date')
+            hepatitis_e_expiry_date = request.POST.get('Hepatitis_E_Expiry_Date')
+            typhoid_batch_no = request.POST.get('Typhoid_Batch_No')
+            typhoid_manufacturing_date = request.POST.get('Typhoid_Manufacturing_Date')
+            typhoid_expiry_date = request.POST.get('Typhoid_Expiry_Date')
+            # Create a new Patient object and save it to the database
+            patient = vaccinationPatientDetails(
+                PatientId=patient_id,
+                PatientName=patient_name,
+                age=age,
+                gender=gender,
+                Hepatitis_E_Batch_No=hepatitis_e_batch_no,
+                Hepatitis_E_Manufacturing_Date=hepatitis_e_manufacturing_date,
+                Hepatitis_E_Expiry_Date=hepatitis_e_expiry_date,
+                Typhoid_Batch_No=typhoid_batch_no,
+                Typhoid_Manufacturing_Date=typhoid_manufacturing_date,
+                Typhoid_Expiry_Date=typhoid_expiry_date,
+
+                # TestDate=test_date,
+                # ReportDate=report_date,
+                # height=height,
+                # weight=weight,
+                # blood=blood,
+                # pulse=pulse,
+            )
+            patient.save()
+
+            return redirect('vaccinationlist')
+        except Exception as e:
+            print("Error adding patient:", e)
+            return JsonResponse({'error': 'Internal server error'}, status=500)
+    else:
+        return JsonResponse({'error': 'Invalid request method'}, status=400)
+    
+def uploadcsvforvaccination(request):
+    if request.method == 'POST' and request.FILES['csv_file']:
+        csv_file = request.FILES['csv_file']
+
+        # Adjust the field names according to your CSV file structure
+        field_names = ['Timestamp','PatientName', 'PatientId', 'Age', 'Gender', 'Hepatitis_E_Batch_No', 'Hepatitis_E_Manufacturing_Date', 'Hepatitis_E_Expiry_Date', 'Typhoid_Batch_No',
+                       'Typhoid_Manufacturing_Date', 'Typhoid_Expiry_Date']
+    
+        try:
+            # Decode the CSV file data and split it into lines
+            decoded_file = csv_file.read().decode('utf-8').splitlines()
+            reader = csv.DictReader(decoded_file, fieldnames=field_names)
+
+            if reader.fieldnames == field_names:
+                next(reader)
+
+            # Initialize a list to store missing data logs
+            missing_data_logs = []
+            total_rows = 0
+            saved_rows = 0
+
+            # Store the CSV data in a variable
+            csv_data = list(reader)
+
+            # Check for missing data in each row
+            for idx, row in enumerate(csv_data, start=1):
+                total_rows += 1
+                missing_fields = [field for field in field_names if not row.get(field)]
+                if missing_fields:
+                    # Append each missing data message separately for each row
+                    error_message = f"Missing data for ID: {row.get('PatientId')} and Name: {row.get('PatientName')} in row {idx}: {', '.join(missing_fields)}"
+                    missing_data_logs.append(error_message)
+                    messages.error(request, error_message)
+                else:
+                    saved_rows += 1
+                    # # Extract date and time from Timestamp
+                     # Convert date strings to datetime objects
+
+
+                      # Extract date and time from Timestamp
+                    timestamp_str = row['Timestamp']
+                    print(timestamp_str)
+
+
+                    try:
+                       # Try parsing with seconds included
+                       timestamp_datetime = datetime.strptime(timestamp_str, '%d-%m-%Y %H:%M:%S')
+
+                    except ValueError:
+                        # If parsing with seconds fails, try without seconds
+                        timestamp_datetime = datetime.strptime(timestamp_str, '%m/%d/%Y %H:%M:%S')
+
+                    # Extract only the date part and format it as day/month/year
+                    timestamp_date = timestamp_datetime.date()
+                    timestamp_date_str = timestamp_date.strftime('%Y-%m-%d')
+                    
+
+                    # hepatitis_e_manufacturing_date = datetime.strptime(row['Hepatitis_E_Manufacturing_Date'], '%d-%m-%Y').date()
+                    # hepatitis_e_expiry_date = datetime.strptime(row['Hepatitis_E_Expiry_Date'], '%d-%m-%Y').date()
+                    # typhoid_manufacturing_date = datetime.strptime(row['Typhoid_Manufacturing_Date'], '%d-%m-%Y').date()
+                    # typhoid_expiry_date = datetime.strptime(row['Typhoid_Expiry_Date'], '%d-%m-%Y').date()
+
+                    # # Convert date to the desired format
+                    # hepatitis_e_manufacturing_date_formatted = hepatitis_e_manufacturing_date.strftime('%Y-%m-%d')
+                    # hepatitis_e_expiry_date_formatted = hepatitis_e_expiry_date.strftime('%Y-%m-%d')
+                    # typhoid_manufacturing_date_formatted = typhoid_manufacturing_date.strftime('%Y-%m-%d')
+                    # typhoid_expiry_date_formatted = typhoid_expiry_date.strftime('%Y-%m-%d')
+                    
+
+                    vaccinationPatientDetails.objects.create(
+                        PatientId=row['PatientId'],
+                        PatientName=row['PatientName'],
+                        age=row['Age'],
+                        gender=row['Gender'],
+                        Hepatitis_E_Batch_No=row['Hepatitis_E_Batch_No'],
+                        Hepatitis_E_Manufacturing_Date=row['Hepatitis_E_Manufacturing_Date'],
+                        Hepatitis_E_Expiry_Date=row['Hepatitis_E_Expiry_Date'],
+                        Typhoid_Batch_No=row['Typhoid_Batch_No'],
+                        Typhoid_Manufacturing_Date=row['Typhoid_Manufacturing_Date'],
+                        Typhoid_Expiry_Date=row['Typhoid_Expiry_Date'],
+                        Date=timestamp_date_str,
+                        # Hepatitis_E_Manufacturing_Date=hepatitis_e_manufacturing_date_formatted,
+                        # Hepatitis_E_Expiry_Date=hepatitis_e_expiry_date_formatted,
+                        # Typhoid_Batch_No=row['Typhoid_Batch_No'],
+                        # Typhoid_Manufacturing_Date=typhoid_manufacturing_date_formatted,
+                        # Typhoid_Expiry_Date=typhoid_expiry_date_formatted,
+                    )
+
+            if missing_data_logs:
+                # Include total rows and saved rows in the error message
+                error_message = f'\nTotal rows: {total_rows}, Saved rows: {saved_rows}'
+                messages.error(request, error_message)
+                return redirect('vaccinationlist')
+            else:
+                # Redirect to the vaccinationlist page after successful upload
+                messages.success(request, 'CSV data uploaded successfully.')
+                return redirect('vaccinationlist')
+
+        except Exception as e:
+            return HttpResponse(f'Error: {str(e)}')
+    else:
+        # return HttpResponse('Please upload a CSV file.')
+        return render(request, 'users/uploadcsv.html')
+
+# end for vaccination list.
+
 
 def delete_all_patients_opto(request):
     if request.method == 'POST':
@@ -2881,6 +3056,7 @@ def delete_all_patients(request):
         vitalPatientDetails.objects.all().delete()
         return redirect('vitalslist')
     return render(request, 'users/vitalslist.html')
+
 
 
 def add_patient(request):
