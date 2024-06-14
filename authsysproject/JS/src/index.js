@@ -142,6 +142,7 @@ class App extends Component {
         cornerstoneTools.setToolDisabled("Magnify");
         cornerstoneTools.setToolDisabled("Pan");
         break;
+
       default:
         break;
     }
@@ -175,7 +176,6 @@ class App extends Component {
     try {
       const urlSearchParams = new URLSearchParams(window.location.search);
       const imageUrl = urlSearchParams.get("data-reportimage");
-      console.log("Image URL:", imageUrl);
 
       //cornerstone
       const element = document.getElementById("viewport");
@@ -223,7 +223,7 @@ class App extends Component {
         imageElement.className = "content-image"; // Add the class to the image element
 
         const editorContent = document.querySelector(
-          "#root > div > div > div.document-editor__editable-container > div"
+          "#root > div > div > div > div.document-editor__editable-container > div"
         );
         if (editorContent) {
           editorContent.appendChild(imageElement);
@@ -2628,6 +2628,13 @@ class App extends Component {
                   onClick={(e) => this.enableTool(e.target.value)}
                 >
                   Length
+                </button>
+                <button
+                  className="tool-button"
+                  value="Magnify"
+                  onClick={(e) => this.enableTool(e.target.value)}
+                >
+                  Magnify
                 </button>
                 <button
                   className="tool-button"
