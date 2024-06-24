@@ -507,13 +507,14 @@
                 <td>
                   {% if patient.jpeg_files.exists %}
                       <a class="reportButton"
-                          href="reporting-bot?data-patientid={{ patient.patient_id }}&data-patientname={{ patient.patient_name }}&data-age={{ patient.age }}&data-gender={{ patient.gender }}&data-testdate={{ patient.study_date }}&data-reportdate={% now 'Y-m-d' %}&data-reportimage={% get_media_prefix %}{{ patient.jpeg_files.first.jpeg_file }}&data-location={{ patient.location }}"
+                          href="reporting-bot?data-patientid={{ patient.patient_id }}&data-patientname={{ patient.patient_name }}&data-age={{ patient.age }}&data-gender={{ patient.gender }}&data-testdate={{ patient.study_date }}&data-reportdate={% now 'Y-m-d' %}&data-reportimage={% get_media_prefix %}{{ patient.jpeg_files.first.jpeg_file }}&data-location={{ patient.location }}&data-accession={{ patient.accession_number }}"
                           data-patient-id="{{ patient.patient_id }}" data-patientname="{{ patient.patient_name }}"
                           data-age="{{ patient.age }}" data-gender="{{ patient.gender }}"
                           data-testdate="{{ patient.study_date }}" data-reportdate="{% now 'Y-m-d' %}"
                           data-reportimage="{% get_media_prefix %}{{ patient.jpeg_files.first.jpeg_file }}"
                           data-dicom-file="{% get_media_prefix %}{{ patient.dicom_file }}"
-                          data-location="{{ patient.location }}" onclick="changeButtonColor(this);">
+                          data-location="{{ patient.location }}"
+                          data-accession="{{ patient.accession_number }}" onclick="changeButtonColor(this);">
                           {% if patient.isDone %}
                               Reported
                           {% else %}

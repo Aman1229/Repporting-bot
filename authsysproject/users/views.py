@@ -88,6 +88,7 @@ from google.oauth2.credentials import Credentials
 from django.conf import settings
 import fitz
 import pandas as pd
+from twilio.rest import Client as tw
 
 def login(request):
     if request.method == 'POST':
@@ -743,37 +744,7 @@ def InstitutionModalities(request):
         return JsonResponse(status=400, data={"message": "invalid data"})
 
 
-# 3
-# def PersonalInfo(request):
-#     if request.method == 'POST':
-#         name = request.POST['name']
-#         email = request.POST['email']
-#         password = request.POST['password']
-#         phone = request.POST['phone']
-#         altphone = request.POST['altphone']
-#         reference = request.POST['reference']
-#         resume = request.FILES['resume']
-#         uploadpicture = request.FILES['uploadpicture']
-#         signature = request.FILES['signature']
-#         companylogo = request.FILES['companylogo']
-#         serviceslist = request.POST['serviceslist']
 
-#         user = User.objects.create_user(username=email, email=email, password=password, first_name=name)
-
-#         insti_group = Group.objects.get(name="radiologist")
-#         insti_group.user_set.add(user)
-
-#         x = PersonalInfoModel.objects.create(user=user, phone=phone, altphone=altphone,
-#                                              reference=reference, resume=resume,
-#                                              uploadpicture=uploadpicture, signature=signature, companylogo=companylogo, serviceslist=serviceslist)
-#         x.save()
-#         print("Done.!!")
-#         return JsonResponse(status=201, data={"message": "success"})
-#     else:
-#         print("Not done..")
-#         return JsonResponse(status=400, data={"message": "invalid data"})
-
-############## Try ##################
 User = get_user_model()
 
 
@@ -1752,6 +1723,7 @@ def handle_single_file_per_person_upload(request, form, locations):
                 for dicom_file in request.FILES.getlist('dicom_file'):
                     try:
                         dicom_data = dcmread(dicom_file)
+                        print(dicom_data)
                     except Exception as e:
                         print(f"Error reading DICOM file: {str(e)}")
                         rejected_files.append({'id': None, 'name': dicom_file.name})
@@ -1759,6 +1731,10 @@ def handle_single_file_per_person_upload(request, form, locations):
 
                     study_date_formatted = datetime.strptime(dicom_data.StudyDate, "%Y%m%d").strftime("%Y-%m-%d")
                     # Extract body part examined from DICOM file
+
+                    accession_number = dicom_data.get('AccessionNumber', None)
+                    if accession_number == '':
+                        accession_number = None
 
                     with transaction.atomic():
                         existing_instance = DICOMData.objects.filter(
@@ -1781,7 +1757,8 @@ def handle_single_file_per_person_upload(request, form, locations):
                                 study_description=str(dicom_data.StudyDescription),
                                 notes=request.POST.get("note"),
                                 body_part_examined=str(dicom_data.BodyPartExamined),
-                                location=location
+                                location=location,
+                                accession_number=accession_number
                             )
                             if dicom_instance.notes == '':
                                 dicom_instance.notes = 'No Clinical History.'
@@ -1890,6 +1867,10 @@ def handle_multiple_file_single_person_upload(request, form, locations):
 
                     study_date_formatted = datetime.strptime(dicom_data.StudyDate, "%Y%m%d").strftime("%Y-%m-%d")
 
+                    accession_number = dicom_data.get('AccessionNumber', None)
+                    if accession_number == '':
+                        accession_number = None
+
                     # Get the unique identifier for the patient
                     patient_id = str(dicom_data.PatientID)
 
@@ -1930,6 +1911,7 @@ def handle_multiple_file_single_person_upload(request, form, locations):
 
                         dicom_instance.study_description = str(dicom_data.StudyDescription)  # Save Body Part Examined
                         dicom_instance.study_date = study_date_formatted
+                        dicom_instance.accession_number = accession_number
                         dicom_instance.save()
 
                     # Create a DICOMFile instance for the DICOMData instance
@@ -2150,6 +2132,7 @@ def upload_xray_pdf(request):
             patient_id = request.POST.get('patientId')
             patient_name = request.POST.get('patientName')
             location = request.POST.get('location')
+            accession_number = request.POST.get('accession')
             test_date_str = request.POST.get('testDate')
             report_date_str = request.POST.get('reportDate')
 
@@ -2179,10 +2162,57 @@ def upload_xray_pdf(request):
                 patient_id=patient_id,
                 location=location,
                 test_date=test_date,
-                report_date=report_date
+                report_date=report_date,
+                accession_number=accession_number
             )
             pdf_model_instance.save()
 
+            # Twilio credentials
+            account_sid = settings.TWILIO_ACCOUNT_SID
+            auth_token = settings.TWILIO_AUTH_TOKEN
+            client = tw(account_sid, auth_token)
+
+            # Prepare the WhatsApp message
+            # message_body = f"Hello {patient_name},\n\nYour X-ray report is ready. Please find the attached report."
+
+            # # URL to access the saved PDF
+            # media_url = request.build_absolute_uri(settings.MEDIA_URL + pdf_file_path)
+            # print("Media URL:", media_url)
+
+            # # Send the PDF to the patient's WhatsApp number
+            # message = client.messages.create(
+            #     from_='whatsapp:+14155238886',  # Replace with your Twilio WhatsApp number
+            #     to=f'whatsapp:+91{accession_number}',
+            #     body=message_body,
+            #     media_url=[media_url]
+            # )
+
+            # URL to access the saved PDF
+            #base_url = "https://reportingbot.in/"
+            media_url = request.build_absolute_uri(settings.MEDIA_URL + pdf_file_path)
+            # base_url = request.build_absolute_uri('/')[:-1]  # Get base URL without trailing slash
+            # media_url = base_url + settings.MEDIA_URL + pdf_file_path.replace('\\', '/')
+
+            print("Media URL:", media_url)
+            # content_variables = json.dumps({
+            #     '1': patient_name,
+            #     '2': media_url
+            # })
+            #print("Content Variables", content_variables)
+
+            # Send the PDF to the patient's WhatsApp number using the approved template
+            message = client.messages.create(
+                from_='whatsapp:+14155238886',  # Replace with your Twilio WhatsApp number
+                to=f'whatsapp:+91{accession_number}',
+                content_sid='HXff6a8bf74ca42c765eefe580fb5b376b',
+                body = f"Hello {patient_name},\n\nYour X-ray report is ready. Please find the attached report.",
+                media_url=[media_url]
+
+                
+            )
+
+            print("WhatsApp message SID:", message.sid)
+            print("Whatsapp number",accession_number)
             return JsonResponse({'message': 'PDF successfully uploaded and processed.'})
         except Exception as e:
             print("Error processing PDF:", e)
@@ -2224,6 +2254,38 @@ def xray_pdf_report(request):
     }
 
     return render(request, 'users/xray_pdf_report.html', context)
+
+
+@login_required
+# def client_dashboard(request):
+#     # Get the logged-in user's client object
+#     user = request.user
+#     try:
+#         client = Client.objects.get(user=user)
+#         user_location = client.location
+#     except Client.DoesNotExist:
+#         user_location = None
+
+#     # Filter PDFs by the user's location
+#     if user_location:
+#         pdfs = XrayReport.objects.filter(location=user_location).order_by('-report_date')
+#     else:
+#         pdfs = XrayReport.objects.none()  # No PDFs if no location is set for the user
+
+#     # Collect unique dates and locations from the PDFs
+#     test_dates = set(pdf.test_date for pdf in pdfs)
+#     formatted_dates = [date.strftime('%Y-%m-%d') for date in test_dates]
+#     report_dates = set(pdf.report_date for pdf in pdfs)
+#     unique_locations = XLocation.objects.all()
+
+#     context = {
+#         'pdfs': pdfs,
+#         'Test_Date': sorted(formatted_dates),
+#         'Report_Date': sorted(report_dates),  # Ensure dates are sorted for dropdown
+#         'Location': unique_locations  # Ensure locations are sorted for dropdown
+#     }
+
+#     return render(request, 'users/client_dashboard.html', context)    
 
 
 ################################################################### Vitals PDF upload to portal #########################################################################

@@ -7,6 +7,7 @@ class XrayReport(models.Model):
     test_date = models.DateField(blank=True, null=True)
     report_date = models.DateField(blank=True, null=True)
     location = models.CharField(max_length=20, blank=True, null=True)
+    accession_number = models.CharField(max_length=20, blank=True, null=True)
 
     def get_pdf_url(self):
       return self.pdf_file.url
