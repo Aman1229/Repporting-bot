@@ -54,6 +54,7 @@ urlpatterns = [
     path('upload_audiometry_pdf/', views.upload_audiometry_pdf, name='upload_audiometry_pdf'),
     path('get-csrf-token/', views.get_csrf_token, name='get_csrf_token'),
     path('xray_pdf_report/', views.xray_pdf_report, name='xray_pdf_report'),
+    path('client_dashboard/', views.client_dashboard, name='client_dashboard'),
     path('ecg_pdf_report/', views.ecg_pdf_report, name='ecg_pdf_report'),
     path('vitals_pdf_report/', views.vitals_pdf_report, name='vitals_pdf_report'),
     path('optometry_pdf_report/', views.optometry_pdf_report, name='optometry_pdf_report'),

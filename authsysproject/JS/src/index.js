@@ -1471,8 +1471,9 @@ class App extends Component {
       const testDate = urlParams.get("data-testdate");
       const reportDate = urlParams.get("data-reportdate");
       const location = urlParams.get("data-location");
+      const accession = urlParams.get("data-accession");
 
-      return { patientId, patientName, testDate, reportDate, location };
+      return { patientId, patientName, testDate, reportDate, location, accession };
     };
 
     const showNotification = (message) => {
@@ -1574,7 +1575,7 @@ class App extends Component {
         const pdfBlob = pdf.output("blob");
 
         // Extract data from URL
-        const { patientId, patientName, testDate, reportDate, location } =
+        const { patientId, patientName, testDate, reportDate, location, accession } =
           extractDataFromURL();
 
         // Send the FormData to Django backend using fetch
@@ -1593,6 +1594,8 @@ class App extends Component {
         formData.append("testDate", testDate);
         formData.append("reportDate", reportDate);
         formData.append("location", location);
+        formData.append("accession", accession);
+        
 
         console.log("FormData:", formData);
 

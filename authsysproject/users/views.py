@@ -2202,17 +2202,16 @@ def upload_xray_pdf(request):
 
             # Send the PDF to the patient's WhatsApp number using the approved template
             message = client.messages.create(
-                from_='whatsapp:+14155238886',  # Replace with your Twilio WhatsApp number
+                from_='whatsapp:+918587075085',  # Replace with your Twilio WhatsApp number
                 to=f'whatsapp:+91{accession_number}',
                 content_sid='HXff6a8bf74ca42c765eefe580fb5b376b',
                 body = f"Hello {patient_name},\n\nYour X-ray report is ready. Please find the attached report.",
                 media_url=[media_url]
-
-                
             )
 
             print("WhatsApp message SID:", message.sid)
             print("Whatsapp number",accession_number)
+            print(message)
             return JsonResponse({'message': 'PDF successfully uploaded and processed.'})
         except Exception as e:
             print("Error processing PDF:", e)
