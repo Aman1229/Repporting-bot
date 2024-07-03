@@ -139,26 +139,23 @@ def user_type_required(user_type):
 
     return decorator
 
-@user_type_required('client')
+#@user_type_required('client')
 def client_dashboard(request):
-    current_user_personal_info = XClient.objects.get(user=request.user)
-    print(current_user_personal_info)
+    try:
+        current_user_personal_info = Client.objects.get(user=request.user)
+    except Client.DoesNotExist:
+        return HttpResponse("Client object does not exist for this user.", status=404)
 
     pdfs_list = []
     test_dates_set = set()
     report_dates_set = set()
 
-    client = XClient.objects.filter(name__exact=current_user_personal_info).first()
-    if client:
-        cities = XCity.objects.filter(client=client)
-        for city in cities:
-            locations = XLocation.objects.filter(city=city)
-            for location in locations:
-                pdfs = XrayReport.objects.filter(location=location)
-                pdfs_list.extend(pdfs)
-                test_dates_set.update(pdf.test_date for pdf in pdfs)
-                report_dates_set.update(pdf.report_date for pdf in pdfs)
-
+    if current_user_personal_info.location:
+        location = current_user_personal_info.location
+        pdfs = XrayReport.objects.filter(location=location.name)  # Matching location name
+        pdfs_list.extend(pdfs)
+        test_dates_set.update(pdf.test_date for pdf in pdfs)
+        report_dates_set.update(pdf.report_date for pdf in pdfs)
 
     formatted_test_dates = sorted(test_date.strftime('%Y-%m-%d') for test_date in test_dates_set)
     formatted_report_dates = sorted(report_date.strftime('%Y-%m-%d') for report_date in report_dates_set)
@@ -167,7 +164,7 @@ def client_dashboard(request):
         'pdfs': pdfs_list,
         'Test_Dates': formatted_test_dates,
         'Report_Dates': formatted_report_dates,
-        'Location': location
+        'Location': current_user_personal_info.location
     }
 
     return render(request, 'users/client.html', context)
