@@ -1,12 +1,13 @@
 @import url("bootstrap/dist/css/bootstrap.min.css");
 
-
 .document-editor {
   border: 1px solid var(--ck-color-base-border);
   border-radius: var(--ck-border-radius);
 
   /* Set vertical boundaries for the document editor. */
-  height: 100vh;
+  height: 94.15vh;
+
+
   /* This element is a flex container for easier rendering. */
   display: flex;
   flex-flow: column nowrap;
@@ -30,46 +31,35 @@
 } */
 
 
-.page_content {
+.page-content {
   display: grid;
   text-align: center;
-  grid-template-rows: none;
   grid-template-columns: 50% 50%;
-  height: calc(100% - 47.2875px);
-}
-
-.cornerstone-container {
   height: 100%;
-  text-align: center;
 }
 
 .viewport-container {
   height: 100%;
+  text-align: center;
 }
 
 .viewport {
   position: relative;
   width: 90%;
-  height: 85%;
+  height: 600px;
   margin: 0.5em auto auto;
 }
 
-.cornerstone-canvas {
-  position: relative !important;
-  height: 100% !important;
-  width: 100% !important;
-}
-
-.button-container {
+.button-container{
   margin-top: 0.5em;
 }
 
-.tool-button {
+.tool-button{
   color: black;
   background-color: white;
 }
 
-.tool-button:hover {
+.tool-button:hover{
   color: white;
   background-color: black;
 }
@@ -77,12 +67,12 @@
 /* Make the editable container look like the inside of a native word processor application. */
 .document-editor__editable-container {
   padding: calc(2 * var(--ck-spacing-large));
-  padding-top: 15px;
   background: var(--ck-color-base-foreground);
+  padding-top: 15px;
   height: 100% !important;
-  overflow: auto !important;
+  overflow: auto !important
+
   /* Make it possible to scroll the "page" of the edited content. */
-  
 }
 
 .document-editor__editable-container > div{
@@ -92,6 +82,7 @@
 .document-editor__editable-container .ck-editor__editable {
   /* Set the dimensions of the "page". */
   min-height: 21cm;
+
   /* Keep the "page" off the boundaries of the container. */
   padding: 1em;
 
@@ -105,7 +96,6 @@
   /* Center the "page". */
   margin: 0 auto;
 }
-
 
 /* Set the default font for the "page" of the content. */
 .document-editor .ck-content,
@@ -209,48 +199,28 @@ Preserve the relative scale, though. */
 .document-editor .ck-content p:first-child { 
   font-size: 1em;
   line-height: 12.9pt;
-  padding-top: 0.5em; 
-  margin-bottom: 1.13em; 
+   padding-top: 0.5em; 
+   margin-bottom: 1.13em; 
 }
 
-
-@media (max-width: 767px) {
-    .page_content {
-      display: block !important; 
-      overflow: auto;
-    }
-    .viewport-container {
-      margin-top: 0.5em;
-    }
-    table, table th, table thead th  {
-      font-size: 8px;
-      text-align: center !important;
-      /* backgrou nd-image: url("logo.png"); */
-      background-color: gray;
-    }
-
+.document-editor .ck-content p{
+  font-size: 1em;
+  line-height: 12.9pt;
+  padding-top: 0; 
+  margin-bottom: 1.13em;
 }
 
-@media (min-width: 768px)  {
+@media (min-width: 576px)  {
 .modal-dialog {
     max-width: 700px !important;
   }
-
-  table, table th, table thead th  {
-    font-size: 8px;
-    text-align: center !important;
-    /* backgrou nd-image: url("logo.png"); */
-    background-color: gray;
-  }
 }
 
-@media (min-width: 768px) {
-  table, table th, table thead th  {
-    font-size: 13px;
-    text-align: center !important;
-    /* backgrou nd-image: url("logo.png"); */
-    background-color: gray;
-  }
+table, table th, table thead th  {
+  font-size: 13px;
+  text-align: center !important;
+  /* backgrou nd-image: url("logo.png"); */
+  background-color: gray;
 }
 
 tbody {
@@ -270,7 +240,7 @@ tbody {
   width: auto;
   height: auto;
   max-width: 100%;
-  max-height: 500px;
+  max-height: 700px;
 }
 
 @media print {
@@ -298,25 +268,6 @@ tbody {
   table{
     table-layout: auto;
   }
-}
-
-.modal {
-  width: 100%;
-  position: relative;
-}
-
-.modal-backdrop {
-  display: none;
-}
-
-.modal-dialog {
-  margin-top: none;
-}
-
-
-.modal-body {
-  max-height: calc(100vh - 210px);
-  overflow-y: auto;
 }
 
 
@@ -371,7 +322,24 @@ tbody {
   padding-right: 25px;
 }
 
+.modal {
+  width: 100%;
+  position: static;
+}
 
+.modal-backdrop {
+  width: 100%;
+  position: static;
+}
+
+.modal-dialog {
+  margin-top: none;
+}
+
+.modal-body {
+  max-height: calc(100vh - 210px);
+  overflow-y: auto;
+}
 
 table{
   -webkit-user-select: none;
@@ -381,6 +349,28 @@ table{
   -o-user-select: none;
   user-select: none;
 }
+
 table::before{
   content: element(table);
 }
+
+/* Add media query for mobile screens */
+@media (max-width: 767px) {
+  .page-content {
+    display: block;
+  }
+
+  .document-editor__editable-container,
+  .viewport-container {
+    width: 100%;
+  }
+
+  .ck.ck-content.ck-editor__editable.ck-rounded-corners.ck-editor__editable_inline.ck-blurred {
+    font-size: 8px; /* Reduce font size to 14px for smaller screens */
+  }
+
+  table, table th, table thead th {
+    font-size: 8px; 
+  }
+}
+
