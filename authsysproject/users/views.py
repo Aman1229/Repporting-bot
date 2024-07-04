@@ -2168,38 +2168,12 @@ def upload_xray_pdf(request):
             account_sid = settings.TWILIO_ACCOUNT_SID
             auth_token = settings.TWILIO_AUTH_TOKEN
             client = tw(account_sid, auth_token)
-
-            # Prepare the WhatsApp message
-            # message_body = f"Hello {patient_name},\n\nYour X-ray report is ready. Please find the attached report."
-
-            # # URL to access the saved PDF
-            # media_url = request.build_absolute_uri(settings.MEDIA_URL + pdf_file_path)
-            # print("Media URL:", media_url)
-
-            # # Send the PDF to the patient's WhatsApp number
-            # message = client.messages.create(
-            #     from_='whatsapp:+14155238886',  # Replace with your Twilio WhatsApp number
-            #     to=f'whatsapp:+91{accession_number}',
-            #     body=message_body,
-            #     media_url=[media_url]
-            # )
-
-            # URL to access the saved PDF
-            #base_url = "https://reportingbot.in/"
             media_url = request.build_absolute_uri(settings.MEDIA_URL + pdf_file_path)
-            # base_url = request.build_absolute_uri('/')[:-1]  # Get base URL without trailing slash
-            # media_url = base_url + settings.MEDIA_URL + pdf_file_path.replace('\\', '/')
 
             print("Media URL:", media_url)
-            # content_variables = json.dumps({
-            #     '1': patient_name,
-            #     '2': media_url
-            # })
-            #print("Content Variables", content_variables)
-
-            # Send the PDF to the patient's WhatsApp number using the approved template
             message = client.messages.create(
-                from_='whatsapp:+918587075085',  # Replace with your Twilio WhatsApp number
+                #from_='whatsapp:+918587075085',  # Replace with your Twilio WhatsApp number
+                messaging_service_sid="MG228f0104ea3ddfc780cfcc1a0ca561d9",
                 to=f'whatsapp:+91{accession_number}',
                 content_sid='HXff6a8bf74ca42c765eefe580fb5b376b',
                 body = f"Hello {patient_name},\n\nYour X-ray report is ready. Please find the attached report.",
