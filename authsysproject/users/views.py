@@ -89,6 +89,7 @@ from django.conf import settings
 import fitz
 import pandas as pd
 from twilio.rest import Client as tw
+import re
 
 def login(request):
     if request.method == 'POST':
@@ -2164,25 +2165,22 @@ def upload_xray_pdf(request):
             )
             pdf_model_instance.save()
 
-            # Twilio credentials
-            account_sid = settings.TWILIO_ACCOUNT_SID
-            auth_token = settings.TWILIO_AUTH_TOKEN
-            client = tw(account_sid, auth_token)
-            media_url = request.build_absolute_uri(settings.MEDIA_URL + pdf_file_path)
+            if re.fullmatch(r'\d{10}', accession_number):
+                account_sid = settings.TWILIO_ACCOUNT_SID
+                auth_token = settings.TWILIO_AUTH_TOKEN
+                client = tw(account_sid, auth_token)
+                #patient_name = 'Jangra'
+                # media_url = 'media/uploads/xray_pdfs/RUCH1234_RUCHI%20JANGRA_IQ%20CITY%20ROAD.pdf'
+                prefix = "media/uploads/xray_pdfs/"
+                encoded_filename = pdf_file.name.replace(" ", "%20")
+                media_url = prefix + encoded_filename
+                message = client.messages.create(
+                    content_sid='HXff6a8bf74ca42c765eefe580fb5b376b',
+                    from_='MG228f0104ea3ddfc780cfcc1a0ca561d9',
+                    to=f'whatsapp:+91{accession_number}',
+                    content_variables=json.dumps({'1': patient_name, '2': media_url}),
+                )
 
-            print("Media URL:", media_url)
-            message = client.messages.create(
-                #from_='whatsapp:+918587075085',  # Replace with your Twilio WhatsApp number
-                messaging_service_sid="MG228f0104ea3ddfc780cfcc1a0ca561d9",
-                to=f'whatsapp:+91{accession_number}',
-                content_sid='HXff6a8bf74ca42c765eefe580fb5b376b',
-                body = f"Hello {patient_name},\n\nYour X-ray report is ready. Please find the attached report.",
-                media_url=[media_url]
-            )
-
-            print("WhatsApp message SID:", message.sid)
-            print("Whatsapp number",accession_number)
-            print(message)
             return JsonResponse({'message': 'PDF successfully uploaded and processed.'})
         except Exception as e:
             print("Error processing PDF:", e)
